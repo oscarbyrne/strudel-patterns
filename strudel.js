@@ -1,105 +1,63 @@
 /*
 TODO:
-- roll diatonic stuff into sequencer
-- rewrite diatonic stuff using the strudel functions (squeeze etc)
-- allow to also send cc numbers
-
-/*
------------------------------------------------------------------
-SEQUENCER
------------------------------------------------------------------
+- make API for SP
+- add a "force midi" setting if it's broken
+- add program changes to electribe API
+- add CC controls to electribe API
+- reconsider duo
 */
-function part(channel, palette, soundName, pattern) {
-  return note(
-    squeeze(pattern, palette)
-  ).midichan(channel).sound(soundName)
+function transform(pattern, bases) {
+  function query(state) {
+    const basis = bases.query(state)
+    let haps = []
+    for (const hap of pattern.query(state)) {
+      const other = basis.at(hap.value % basis.length)
+      haps.push(
+        new Hap(
+          hap.whole,
+          hap.part,
+          other.value + 12 * Math.floor(hap.value / basis.length),
+          hap.combineContext(other)
+        )
+      )
+    }
+    return haps
+  }
+  return new Pattern(query)
 }
-function section(composition) {
+function maximallyEven(c, d, a) {
   let parts = []
-  for (const [partName, pattern] of Object.entries(composition)) {
-    const [channel, palette, sound] = partsMeta[partName]
+  for (let k = 0; k < d; k++) {
     parts.push(
-      part(channel, palette, sound, pattern)
+      pure(Math.floor((k * c + a) / d))
     )
   }
   return stack(...parts)
 }
-function song(arrangement, bpm, midi=null) {
-  let arranged = arrange(
-    ...arrangement
-  ).cpm(bpm)
-  if (midi != null) {
-    arranged = arranged.midi(midi)
-  }
-  return arranged
-}
-/*
------------------------------------------------------------------
-DIATONIC
------------------------------------------------------------------
-*/
-function maximallyEvenSet(c, d, a = 0) {
-  if (d == 0) {
-    throw new Error("Zero division")
-  }
-  let maximallyEven = []
-  for (let k = 0; k < d; k++) {
-    maximallyEven.push(
-      Math.floor((k * c + a) / d)
-    )
-  }
-  return maximallyEven
-}
-function diatonicSubset(mode, cardinality, basis = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
-  const mapping = maximallyEvenSet(
-    basis.length,
-    cardinality,
-    mode
+function duo(pattern) {
+  return pattern.withValue(
+    (value) => parseInt(value, 12)
   )
-  let diatonic = []
-  for (let i = 0; i < mapping.length; i++) {
-    diatonic.push(
-      basis[mapping[i]]
-    )
-  }
-  return diatonic
 }
-function octaved(mode) {
-  if (mode.length > 10) {
-    throw new Error("Too many pitch classes for decimal basis")
-  }
-  let pitches = []
-  // 128 notes in midi standard
-  let nOctaves = Math.ceil(128 / mode.length)
-  let offset = 0
-  for (let octave = 0; octave < nOctaves ; octave++) {
-    for (let i = 0; i < 10; i++) {
-      let value
-      if (i < mode.length) {
-        value = pitch(octave, mode[i])
-      } else {
-        value = "~"
-      }
-      pitches.push(value)
+const MIDI_DEVICE_NAME = 'UM-ONE MIDI 1'
+let electribe = {
+  parts: {},  
+  addPart: function(partName, midiChannel, portableSoundName) {
+    this.parts[partName] = [midiChannel, portableSoundName]
+  },
+  pattern: function(p) {
+    let patterns = []
+    for (const [partName, pattern] of Object.entries(p)) {
+      const [midiChannel, portableSoundName] = this.parts[partName]
+      patterns.push(
+        pattern.note().midichan(midiChannel).sound(portableSoundName)
+      )
+    }
+    let s = stack(...patterns)
+    if (WebMidi.outputs.find(o => o.name == MIDI_DEVICE_NAME)) {
+      return s.midi(MIDI_DEVICE_NAME)
+    } else {
+      return s
     }
   }
-  return pitches
-}
-function pitch(octave, pitchClass) {
-  return (12 * octave) + pitchClass
-}
-function chord(octave, degree, relIntervals, mode) {
-  let notes = []
-  for (let i = 0; i < relIntervals.length ; i++) {
-    const interval = relIntervals[i] + degree
-    const relOctave = Math.floor(interval / mode.length)
-    const intervalClass = interval % mode.length
-    notes.push(
-      pitch(
-        octave + relOctave,
-        mode[intervalClass]
-      )
-    )
-  }
-  return notes
 }
