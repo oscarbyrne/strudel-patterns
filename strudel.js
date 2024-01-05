@@ -1,10 +1,11 @@
 /*
 TODO:
+- make T update hap context with value of basis.length, then in minime use that as radix parameter in parseInt (default 12)
 - make API for SP
-- add a "force midi" setting if it's broken
 - add program changes to electribe API
 - add CC controls to electribe API
-- reconsider duo
+- write html controller to use minime by default and pass context
+- put it on github
 */
 function transform(pattern, bases) {
   function query(state) {
@@ -29,20 +30,22 @@ function maximallyEven(c, d, a) {
   let parts = []
   for (let k = 0; k < d; k++) {
     parts.push(
-      pure(Math.floor((k * c + a) / d))
+      Math.floor((k * c + a) / d)
     )
   }
-  return stack(...parts)
+  return parts
 }
-function duo(pattern) {
-  return pattern.withValue(
-    (value) => parseInt(value, 12)
-  )
-}
+
+const T = transform
+const ME = (c, d, a) => stack(...maximallyEven(c, d, a).map(pure))
 const MIDI_DEVICE_NAME = 'UM-ONE MIDI 1'
+
 let electribe = {
   parts: {},  
-  addPart: function(partName, midiChannel, portableSoundName) {
+  addPart: function(partName, midiChannel, portableSoundName = null) {
+    if (portableSoundName == null) {
+      portableSoundName = partName
+    }
     this.parts[partName] = [midiChannel, portableSoundName]
   },
   pattern: function(p) {
@@ -61,3 +64,37 @@ let electribe = {
     }
   }
 }
+
+electribe.addPart('bd', 1)
+electribe.addPart('sd', 2)
+electribe.addPart('chords', 3, 'gm_acoustic_guitar_nylon')
+electribe.addPart('bass', 4, 'gm_trombone')
+electribe.addPart('vox', 7, 'gm_flute')
+electribe.addPart('oh', 10)
+electribe.addPart('hh', 11)
+electribe.addPart('rim', 12)
+
+function minime(string) {
+  function transform(_, c, d, a) {
+    const asArray = maximallyEven(
+      Number(c),
+      Number(d),
+      Number(a)
+    )
+    return '[' + asArray.toString() + ']'
+  }
+  return mini(
+    string.replace(
+      /ME\((\d+)\,\s*(\d+)\,\s*(\d+)\)/g,
+      transform
+    )
+  )
+}
+setStringParser(minime)
+
+electribe.pattern({
+  chords: T(
+    "<[0 2 4] [0 2 4 6]>".add("<0 3>"),
+    minime('<ME(12, 7, 5) ME(12, 7, 0)> / 2')
+  ).add(60)
+})
