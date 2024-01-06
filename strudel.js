@@ -78,7 +78,7 @@ let output = {
 }
 let electribe = {
   parts: {},  
-  addPart: function(partName, midiChannel, portableSoundName = null) {
+  addPart: function(midiChannel, partName, portableSoundName = null) {
     if (portableSoundName == null) {
       portableSoundName = partName
     }
@@ -101,14 +101,14 @@ let electribe = {
   },
 }
 
-electribe.addPart('bd', 1)
-electribe.addPart('sd', 2)
-electribe.addPart('chords', 3, 'gm_acoustic_guitar_nylon')
-electribe.addPart('bass', 4, 'gm_trombone')
-electribe.addPart('vox', 7, 'gm_flute')
-electribe.addPart('oh', 10)
-electribe.addPart('hh', 11)
-electribe.addPart('rim', 12)
+electribe.addPart(01, 'bd')
+electribe.addPart(02, 'sd')
+electribe.addPart(03, 'chords', 'gm_acoustic_guitar_nylon')
+electribe.addPart(04, 'bass', 'gm_trombone')
+electribe.addPart(07, 'vox', 'gm_flute')
+electribe.addPart(10, 'oh')
+electribe.addPart(11, 'hh')
+electribe.addPart(12, 'rim')
 
 electribe.stack({
   chords: T(
