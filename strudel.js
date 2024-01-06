@@ -5,6 +5,7 @@ TODO:
 - make API for SP
 - add program changes to electribe API
 - add CC controls to electribe API
+- clean up code (add semicolons, switch to classes)
 */
 function transform(pattern, bases) {
   function query(state) {
@@ -53,8 +54,28 @@ const b9 = p => toDecimal(p, 9)
 const b10 = p => toDecimal(p, 10)
 const b11 = p => toDecimal(p, 11)
 const b12 = p => toDecimal(p, 12)
-const MIDI_DEVICE_NAME = 'UM-ONE MIDI 1'
 
+let output = {
+  midi: {
+    deviceName: 'UM-ONE MIDI 1',
+    force: false,
+    connected: function() {
+      return Boolean(
+        WebMidi.outputs.find(o => o.name == this.deviceName)
+      )
+    },
+    send: function(pattern) {
+      return pattern.midi(this.deviceName)
+    },
+  },
+  send: function(pattern) {
+    if (this.midi.connected()) {
+      return this.midi.send(pattern)
+    } else {
+      return pattern
+    }
+  },
+}
 let electribe = {
   parts: {},  
   addPart: function(partName, midiChannel, portableSoundName = null) {
@@ -63,21 +84,21 @@ let electribe = {
     }
     this.parts[partName] = [midiChannel, portableSoundName]
   },
-  pattern: function(p) {
+  pattern: function(partName, pattern) {
+    const [midiChannel, portableSoundName] = this.parts[partName]
+    return output.send(
+      pattern.note().midichan(midiChannel).sound(portableSoundName)
+    )
+  },
+  stack: function(args) {
     let patterns = []
-    for (const [partName, pattern] of Object.entries(p)) {
-      const [midiChannel, portableSoundName] = this.parts[partName]
+    for (const [partName, pattern] of Object.entries(args)) {
       patterns.push(
-        pattern.note().midichan(midiChannel).sound(portableSoundName)
+        this.pattern(partName, pattern)
       )
     }
-    let s = stack(...patterns)
-    if (WebMidi.outputs.find(o => o.name == MIDI_DEVICE_NAME)) {
-      return s.midi(MIDI_DEVICE_NAME)
-    } else {
-      return s
-    }
-  }
+    return stack(...patterns)
+  },
 }
 
 electribe.addPart('bd', 1)
@@ -89,7 +110,7 @@ electribe.addPart('oh', 10)
 electribe.addPart('hh', 11)
 electribe.addPart('rim', 12)
 
-electribe.pattern({
+electribe.stack({
   chords: T(
     b7("<[04, 06, 11] [10 12 04 06]>").add(b7("[0, 2, 4, 10, 12, -20]")),
     cat(ME(12, 7, 5), ME(12, 7, 0)).slow(2)
