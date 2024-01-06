@@ -84,17 +84,17 @@ let electribe = {
     }
     this.parts[partName] = [midiChannel, portableSoundName]
   },
-  pattern: function(partName, pattern) {
+  part: function(partName, pattern) {
     const [midiChannel, portableSoundName] = this.parts[partName]
     return output.send(
       pattern.note().midichan(midiChannel).sound(portableSoundName)
     )
   },
-  stack: function(args) {
+  pattern: function(args) {
     let patterns = []
     for (const [partName, pattern] of Object.entries(args)) {
       patterns.push(
-        this.pattern(partName, pattern)
+        this.part(partName, pattern)
       )
     }
     return stack(...patterns)
@@ -110,7 +110,7 @@ electribe.addPart(10, 'oh')
 electribe.addPart(11, 'hh')
 electribe.addPart(12, 'rim')
 
-electribe.stack({
+electribe.pattern({
   chords: T(
     b7("<[04, 06, 11] [10 12 04 06]>").add(b7("[0, 2, 4, 10, 12, -20]")),
     cat(ME(12, 7, 5), ME(12, 7, 0)).slow(2)
