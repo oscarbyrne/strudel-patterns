@@ -1,11 +1,10 @@
 /*
 TODO:
-- make T update hap context with value of basis.length, then in minime use that as radix parameter in parseInt (default 12)
+- use error stack to get line number and add that as context to haps so that function is highlighted
+- might as well highlight all functions that return a pattern (e.g. the basis functions)
 - make API for SP
 - add program changes to electribe API
 - add CC controls to electribe API
-- write html controller to use minime by default and pass context
-- put it on github
 */
 function transform(pattern, bases) {
   function query(state) {
@@ -30,14 +29,30 @@ function maximallyEven(c, d, a) {
   let parts = []
   for (let k = 0; k < d; k++) {
     parts.push(
-      Math.floor((k * c + a) / d)
+      pure(Math.floor((k * c + a) / d))
     )
   }
-  return parts
+  return stack(...parts)
+}
+function toDecimal(pattern, radix) {
+  return pattern.withValue(
+    v => parseInt(v, radix)
+  )
 }
 
 const T = transform
-const ME = (c, d, a) => stack(...maximallyEven(c, d, a).map(pure))
+const ME = maximallyEven
+const b2 = p => toDecimal(p, 2)
+const b3 = p => toDecimal(p, 3)
+const b4 = p => toDecimal(p, 4)
+const b5 = p => toDecimal(p, 5)
+const b6 = p => toDecimal(p, 6)
+const b7 = p => toDecimal(p, 7)
+const b8 = p => toDecimal(p, 8)
+const b9 = p => toDecimal(p, 9)
+const b10 = p => toDecimal(p, 10)
+const b11 = p => toDecimal(p, 11)
+const b12 = p => toDecimal(p, 12)
 const MIDI_DEVICE_NAME = 'UM-ONE MIDI 1'
 
 let electribe = {
@@ -74,27 +89,11 @@ electribe.addPart('oh', 10)
 electribe.addPart('hh', 11)
 electribe.addPart('rim', 12)
 
-function minime(string) {
-  function transform(_, c, d, a) {
-    const asArray = maximallyEven(
-      Number(c),
-      Number(d),
-      Number(a)
-    )
-    return '[' + asArray.toString() + ']'
-  }
-  return mini(
-    string.replace(
-      /ME\((\d+)\,\s*(\d+)\,\s*(\d+)\)/g,
-      transform
-    )
-  )
-}
-setStringParser(minime)
-
 electribe.pattern({
   chords: T(
-    "<[0 2 4] [0 2 4 6]>".add("<0 3>"),
-    minime('<ME(12, 7, 5) ME(12, 7, 0)> / 2')
+    b7("<[04, 06, 11] [10 12 04 06]>").add(b7("[0, 2, 4, 10, 12, -20]")),
+    cat(ME(12, 7, 5), ME(12, 7, 0)).slow(2)
   ).add(60)
 })
+
+// b12("0 1 2 3 4 5 6 7 8 9 A B").add(50).note()
