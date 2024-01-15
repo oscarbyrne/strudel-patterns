@@ -1,48 +1,62 @@
 /*
 TODO:
-- use error stack to get line number and add that as context to haps so that function is highlighted
-- might as well highlight all functions that return a pattern (e.g. the basis functions)
+- documentation
+- deploy to static site
+- figure out d* operation for j function (need to track state)
 - make API for SP
 - add program changes to electribe API
 - add CC controls to electribe API
 - clean up code (add semicolons, switch to classes)
 */
-function transform(pattern, bases) {
-  function query(state) {
-    const basis = bases.query(state)
-    let haps = []
-    for (const hap of pattern.query(state)) {
-      const other = basis.at(hap.value % basis.length)
-      haps.push(
-        new Hap(
-          hap.whole,
-          hap.part,
-          other.value + 12 * Math.floor(hap.value / basis.length),
-          hap.combineContext(other)
-        )
+
+function maximallyEvenSet(c, d, m) {
+  return listRange(0, d-1).map(
+    (k) => Math.floor((k * c + m) / d)
+  )
+}
+function monotonize(pcs) {
+  pcs = pcs.map((p) => p % 12)
+  for (let i = 1; i < pcs.length; i++) {
+    if (pcs[i] < pcs[i - 1]) {
+      pcs[i] += 12
+    }
+  }
+  return pcs
+}
+const customScale = register(
+  'customScale',
+  (list, pattern) => pattern.fmap(
+    value => list.at(value%list.length) + Math.floor(value/list.length) * 12
+  )
+)
+// See: https://mtosmt.org/issues/mto.19.25.2/mto.19.25.2.plotkin.html#:~:text=ABSTRACT%3A%20Filtered%20Point%2DSymmetry%20(,between%20iterated%20maximally%20even%20sets.
+const j = register(
+  'j',
+  function(d, m, pattern) {
+    m = Array.isArray(m) ? m : [m]
+    let pcs = listRange(0, 11)
+    for (let n = 0; n < d.length - 1; n++) {
+      pcs = pcs.map(
+        (k) =>
+        maximallyEvenSet(
+          d[n + 1],
+          d[n],
+          m[n]
+        ).at(k % d[n])
       )
     }
-    return haps
-  }
-  return new Pattern(query)
-}
-function maximallyEven(c, d, a) {
-  let parts = []
-  for (let k = 0; k < d; k++) {
-    parts.push(
-      pure(Math.floor((k * c + a) / d))
+    return pattern.customScale(
+      monotonize(pcs)
     )
   }
-  return stack(...parts)
-}
+)
+
 function toDecimal(pattern, radix) {
   return pattern.withValue(
     v => parseInt(v, radix)
   )
 }
 
-const T = transform
-const ME = maximallyEven
 const b2 = p => toDecimal(p, 2)
 const b3 = p => toDecimal(p, 3)
 const b4 = p => toDecimal(p, 4)
@@ -111,10 +125,7 @@ electribe.addPart(11, 'hh')
 electribe.addPart(12, 'rim')
 
 electribe.pattern({
-  chords: T(
-    b7("<[04, 06, 11] [10 12 04 06]>").add(b7("[0, 2, 4, 10, 12, -20]")),
-    cat(ME(12, 7, 5), ME(12, 7, 0)).slow(2)
+  chords: b7("<[04, 06, 11] [10 12 04 06]>").add(b7("[0, 2, 4, 10, 12, -20]")).j(
+    "12:7", "<5 0> / 2"
   ).add(60)
 })
-
-// b12("0 1 2 3 4 5 6 7 8 9 A B").add(50).note()
