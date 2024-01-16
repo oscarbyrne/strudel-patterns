@@ -115,11 +115,11 @@ let electribe = {
   },
 }
 
-electribe.addPart(01, 'bd')
-electribe.addPart(02, 'sd')
-electribe.addPart(03, 'chords', 'gm_acoustic_guitar_nylon')
-electribe.addPart(04, 'bass', 'gm_trombone')
-electribe.addPart(07, 'vox', 'gm_flute')
+electribe.addPart( 1, 'bd')
+electribe.addPart( 2, 'sd')
+electribe.addPart( 3, 'chords', 'gm_acoustic_guitar_nylon')
+electribe.addPart( 4, 'bass', 'gm_trombone')
+electribe.addPart( 7, 'vox', 'gm_flute')
 electribe.addPart(10, 'oh')
 electribe.addPart(11, 'hh')
 electribe.addPart(12, 'rim')
